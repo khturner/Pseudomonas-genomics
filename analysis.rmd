@@ -1,0 +1,29 @@
+---
+title: "Comparative analysis of Pseudomonas genomes can reveal the biological function of unannotated genes"
+author: "Keith H. Turner (keith.turner@monsanto.com)"
+date: "9/29/2015"
+output: html_document
+---
+```{r, echo = FALSE, message = FALSE}
+require(dplyr)
+require(ggplot2)
+```
+### Introduction
+As the cost of sequencing a bacterial genome has plummeted, and the annotation and assembly of those genomes has become easier, large-scale genomics projects focused on exploring the pangenome space of bacterial species or genera of interest have started to appear. Recently, the [International Pseudomonas Consortium Database](https://ipcd.ibis.ulaval.ca/), led by Roger Levesque, began a project to sequence at least 1,000 genomes of the opportunistic pathogen _Pseudomonas aeruginosa_. One can see many possible applications for a large database of genomes of such an economically and medically significant pathogen, especially one whose genome is loaded with horizontally acquired elements. The Consortium states in their [recent paper][freschi] describing the progress of the project so far:
+
+> Our approach will allow us to draw potential links between environmental strains and those implicated in human and animal infections, understand how patients become infected and how the infection evolves over time as well as identify prognostic markers for better evidence-based decisions on patient care.
+
+To me, this says that the authors are thinking about the value of their database as a whole entity, rather than just a collection of genomes against which new isolates can be matched or typed. Reading this in the Consortium's paper made me think of something I think about in my [day job](http://www.monsanto.com/products/pages/microbials.aspx) quite a lot: a large bacterial genome sequence database is more than just the sum of its parts. By looking at the collections of genes that are carried by diverse strains of a single species or genus, we can begin to glimpse the hidden rules that dictate how those genes function together.
+
+Bacterial genomes encode thousands of functions, all of which must work together to effect a suite of phenotypes that ultimately provide fitness to the organism. If a gene isn't pulling its weight and fulfilling its role in a critical pathway, the whole ship can be lost. Therefore, by looking at the occurrence patterns of groups of genes across a diverse genome database, we can infer the biological function of previously uncharacterized genes. In this document, I will explore this possibility using publically available _Pseudomonas_ genomes.
+
+### Analysis and Results
+#### Data and tools
+I'll be working with the entire proteomes of every strain available on the fantastic [Pseudomonas Genome Database](http://pseudomonas.com/). This work will be done on an [AWS EC2 Free Tier](https://aws.amazon.com/free/) instance. All code is being versioned on [my personal GitHub](https://github.com/khturner/Pseudomonas-genomics). Finally, this document is going to be published on [Rpubs](http://rpubs.com/khturner/).
+
+#### Obtaining and clustering proteomes
+To begin, I downloaded the [strain summary file](http://pseudomonas.com/downloads/pseudomonas/pgd_r_15_2/strain_summary.txt) from the Pseudomonas Genome Database.
+
+...continue later...
+
+[freschi]: http://journal.frontiersin.org/article/10.3389/fmicb.2015.01036/abstract "Freschi, L. et al. (2015) Clinical utilization of genomics data produced by the international Pseudomonas aeruginosa consortium. Frontiers Microbiol."
