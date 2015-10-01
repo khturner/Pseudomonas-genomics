@@ -4,3 +4,4 @@ uc
 *.Rproj
 .Rproj.user
 rsconnect
+nohup.out

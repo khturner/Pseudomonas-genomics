@@ -80,12 +80,37 @@ img {
 <h3>Analysis and Results</h3>
 <div id="data-and-tools" class="section level4">
 <h4>Data and tools</h4>
-<p>I’ll be working with the entire proteomes of every strain available on the fantastic <a href="http://pseudomonas.com/">Pseudomonas Genome Database</a>. All code is being versioned on <a href="https://github.com/khturner/Pseudomonas-genomics">my personal GitHub</a>. Computation will be done on an <a href="https://aws.amazon.com/free/">AWS EC2 Free Tier</a> t2.micro instance (1 GB RAM, 30 GB HDD). Finally, I’ll be doing all the work on an <a href="http://www.amazon.com/gp/product/B00VUV0MG0?psc=1&amp;redirect=true&amp;ref_=oh_aui_detailpage_o01_s00">ASUS C201 Chromebook</a>, which was $169 when I bought it. I don’t plan on spending any more money on this project, so I’m going to have to be creative with how I use the RAM - I’ll be rich in compute time and poor on memory, so that will likely change how I’d do things from where I would on a beefier machine. Luckily, as this is a nights and weekends project, I can easily set stuff up to run for a couple of days and check back on it later. My hope is that by using free tools and documenting everything I’m doing, this will serve as an example of how to do meaningful and powerful biological data science on the cheap.</p>
+<p>I’ll be working with the entire proteomes of every strain available on the fantastic <a href="http://pseudomonas.com/"><em>Pseudomonas</em> Genome Database</a>. All code is being versioned on <a href="https://github.com/khturner/Pseudomonas-genomics">my personal GitHub</a>. Computation will be done on an <a href="https://aws.amazon.com/free/">AWS EC2 Free Tier</a> t2.micro instance (1 Gb RAM, 30 Gb HDD). Finally, I’ll be doing all the work on an <a href="http://www.amazon.com/gp/product/B00VUV0MG0?psc=1&amp;redirect=true&amp;ref_=oh_aui_detailpage_o01_s00">ASUS C201 Chromebook</a>, which was $169 when I bought it. I don’t plan on spending any more money on this project, so I’m going to have to be creative with how I use the RAM - I’ll be rich in compute time and poor on memory, so that will likely change how I’d do things from where I would on a beefier machine. Luckily, as this is a nights and weekends project, I can easily set stuff up to run for extended periods of time and check back on it later. My hope is that by using free tools and documenting everything I’m doing, this will serve as an example of how to do meaningful and powerful biological data science on the cheap.</p>
 </div>
 <div id="obtaining-and-clustering-proteomes" class="section level4">
 <h4>Obtaining and clustering proteomes</h4>
-<p>To begin, I downloaded the <a href="http://pseudomonas.com/downloads/pseudomonas/pgd_r_15_2/strain_summary.txt">strain summary file</a> from the Pseudomonas Genome Database.</p>
-<p>…continue later…</p>
+<p>To begin, I downloaded the <a href="http://pseudomonas.com/downloads/pseudomonas/pgd_r_15_2/strain_summary.txt">strain summary file</a> from the <em>Pseudomonas</em> Genome Database. This file contains the URLs for various files for sequenced <em>Pseudomonas</em> strains - in our case, we’re interested in the proteomes. Then, I wrote and ran <a href="https://github.com/khturner/Pseudomonas-genomics/blob/master/download_faa.sh">download_faa.sh</a>, which downloads all of the proteomes into the <code>faa</code> subdirectory.</p>
+<pre class="bash"><code>$ nohup ./download_faa.sh strain_summary.txt &amp;</code></pre>
+<p>While that ran, I wrote and ran <a href="https://github.com/khturner/Pseudomonas-genomics/blob/master/compile_proteome_run_uclust.sh">compile_proteome_run_uclust.sh</a>, which does four things: (1) adds the strain name to the fasta header with a “_-_” separator between it and the gene name, (2) compiles a single large fasta file, (3) runs <a href="http://drive5.com/usearch/">usearch</a> -sortbylength, and finally (4) runs usearch -cluster_smallmem (remember, we’ve only got 1 Gb of RAM to play with!)</p>
+<pre class="bash"><code>$ nohup ./compile_proteome_run_uclust.sh &amp;</code></pre>
+<p>Aaaaand we’ve already hit our first problem:</p>
+<pre class="bash"><code>$ cat nohup.out 
+
+usearch v8.1.1756_i86linux32, 1.0Gb RAM, 1 cores
+(C) Copyright 2013-15 Robert C. Edgar, all rights reserved.
+http://drive5.com/usearch
+
+Licensed to: khturner@gmail.com
+
+./compile_proteome_run_uclust.sh: line 11: 15103 Killed                  usearch -sortbylength faa/proteome.faa -fastaout faa/proteome.sorted.faa</code></pre>
+<p>Might be that 1 Gb RAM is not quite enough. How big is that proteome file anyway?</p>
+<pre class="bash"><code>$ ll -h faa/proteome.faa 
+-rw-rw-r-- 1 khturner khturner 3.1G Oct  1 00:40 faa/proteome.faa</code></pre>
+<p>Ahhh yeah that’s the problem - hard to sort 3.1 Gb of sequences in 1 Gb of RAM. Let’s add some swap space: - 4 Gb should do it.</p>
+<pre class="bash"><code>$ sudo dd if=/dev/zero of=/var/swap.1 bs=1M count=4096
+$ sudo chmod 600 swap.1 
+$ sudo mkswap swap.1 
+# Add this line to /etc/fstab:
+#   /var/swap.1     swap    swap    defaults        0       0
+$ sudo swapon -a</code></pre>
+<p>OK, now let’s try again.</p>
+<pre class="bash"><code>$ nohup ./compile_proteome_run_uclust.sh &amp;</code></pre>
+<p>…Running overnight…</p>
 </div>
 </div>
 

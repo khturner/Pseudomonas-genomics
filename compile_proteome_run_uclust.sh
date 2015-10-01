@@ -7,5 +7,8 @@ do
   cat faa/$strain.faa | sed "s/>/>${strain}_-_/g" | awk '{print $1}' >> faa/proteome.faa
 done
 
+# Presort by length
+usearch -sortbylength faa/proteome.faa -fastaout faa/proteome.sorted.faa
+
 # Run uclust
-usearch -cluster_fast faa/proteome.faa -sort length -id 0.75 -uc uc/results.id75.uc
+usearch -cluster_smallmem faa/proteome.sorted.faa -id 0.75 -uc uc/results.id75.uc
