@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from scipy.sparse import lil_matrix
+from scipy.sparse import lil_matrix # Do I want to do this?
 import argparse
 
 parser = argparse.ArgumentParser(description = "Build a CSR representation of a sparse matrix from UCLUST results")
