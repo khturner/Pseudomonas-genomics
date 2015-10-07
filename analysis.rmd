@@ -15,7 +15,7 @@ As the cost of sequencing a bacterial genome has plummeted, and the annotation a
 
 To me, this says that the authors are thinking about the value of their database as a whole entity, rather than just a collection of genomes against which new isolates can be matched or typed. Reading this in the Consortium's paper made me think of something I think about in my [day job](http://www.monsanto.com/products/pages/microbials.aspx) quite a lot: a large bacterial genome sequence database is more than just the sum of its parts. By looking at the collections of genes that are carried by diverse strains of a single species or genus, we can begin to glimpse the hidden rules that dictate how those genes function together.
 
-Bacterial genomes encode thousands of functions, all of which must work together to effect a suite of phenotypes that ultimately provide fitness to the organism. If a gene isn't pulling its weight and fulfilling its role in a critical pathway, the whole ship can be lost. Therefore, by looking at the occurrence patterns of groups of genes across a diverse genome database, we can infer the biological function of previously uncharacterized genes. In this document, I will explore this possibility using publically available _Pseudomonas_ genomes.
+Bacterial genomes encode thousands of functions, all of which must work together to effect a suite of phenotypes that ultimately provide fitness to the organism. If a gene isn't pulling its weight and fulfilling its role in a critical pathway, the whole ship can be lost. Therefore, by looking at the occurrence patterns of groups of genes across a diverse genome database, we can infer the biological function of previously uncharacterized genes by seeing what genes they cooccur with. In this document, I will explore this possibility using publically available _Pseudomonas_ genomes.
 
 ### Analysis and Results
 #### Data and tools
@@ -72,6 +72,62 @@ OK, now let's try again.
 $ nohup ./compile_proteome_run_uclust.sh &
 ```
 
-...Running overnight...
+OK, 32 hours later we're finished. We've got 122,792 clusters at 50% identity from 8,811,379 sequences, 50,870 of which are singletons. Let's start to look at which clusters show similar patterns of occurrence across our 1,523 genomes.
+
+#### Measuring cluster-cluster cooccurrence
+Now, we'll investigate cooccurrence patterns among those clusters. We need a metric to compare the similarity in the set of strains containing cluster i and the set of strains containing cluster j, for all pairs of clusters i and j. I like the lexicographer's mutual information (LMI) as described [here](http://wortschatz.uni-leipzig.de/~sbordag/papers/BordagMC08.pdf). In this paper, the LMI is defined as:
+
+$$sig_{LMI} (A,B)=n_{AB}\cdot log_{2}\left(\frac{n \cdot n_{AB}}{n_{A} \cdot n_{B}}\right)$$
+
+This has some nice features, such as the fact that rarer proteins that cooccur at the same frequency are weighted higher, up to a point. However, it would be nice to have our cooccurrence metric be asymmetric, so we can see when, for example, protein B requires the presence of protein A but protein A does not always require the presence of protein B. Therefore, we'll modify this to make an asymmetric LMI, or an aLMI:
+
+$$sig_{aLMI} (A,B)=n_{AB}\cdot log_{2}\left(\frac{n \cdot n_{AB}}{n^{2}_{A}}\right)$$
+
+This aLMI is much like our symmetric LMI in that it takes into account how often we see a protein, but only protein A, rather than both proteins. In this metric, the more times protein B is seen given protein A, the higher the aLMI.
+
+So how does this metric compare to more traditional set similarity metrics? Let's play with some toy data to find out.
+
+```{r}
+# Generate a random 100x100 matrix of T/F data
+x <- matrix(sample(c(T, F), size = 100 * 100, replace = T), nrow = 100)
+
+# Calculate the number of entries for column i and column j, and the intersect and unions of those columns
+co <- data.frame(i = c(), j = c(), jaccard = c(), logodds = c(), MI = c(), LMI = c()) %>% tbl_df
+for (i in (1:100)) {
+  for (j in (1:100)) {
+    is <- which(x[,i])
+    js <- which(x[,j])
+    co <- co %>% rbind(data.frame(i = i, j = j, leni = length(is), lenj = length(js),
+                                  lenint = length(intersect(is, js)),
+                                  lenun = length(union(is, js))))
+  }
+}
+
+# Calculate some similarity metrics
+co <- co %>% tbl_df %>% mutate(jaccard = lenint / lenun,
+                               LMI = lenint * log2(100 * lenint / (leni * lenj)),
+                               aLMI = lenint * log2(100 * lenint / (leni ^ 2)))
+
+# How does the Jaccard index correspond to our aLMI?
+co %>% ggplot(aes(jaccard, aLMI, color = leni)) + geom_point()
+```
+
+Not bad! Looks like the aLMI captures how often you see an entry whereas the Jaccard index can't. Those points squished up against the right side are the diagonal of our matrix (comparing column i to column i). How does the aLMI compare to the traditional LMI?
+
+```{r}
+co %>% ggplot(aes(LMI, aLMI, color = leni)) + geom_point()
+```
+
+OK, so tends to track with it but not perfectly. What's going on in there?
+
+```{r}
+co %>% filter(i != j, i <= 2, j <= 2)
+```
+
+Alright, so in the case of columns 1 and 2, the column with fewer entries gets a higher aLMI, since the intersection takes up a greater proportion of the total number of times an entry was seen in that column. So it looks like this metric should encompass the kinds of properties we're after in determining directional protein cooccurrence relationships. We'll calculate this metric for all pairs of clusters using the script [build_graph.py](https://github.com/khturner/Pseudomonas-genomics/blob/master/build_graph.py).
+
+```bash
+nohup ./build_graph.py -i blah -n `ls faa/Pseudo* | wc -l` -o test &
+```
 
 [freschi]: http://journal.frontiersin.org/article/10.3389/fmicb.2015.01036/abstract "Freschi, L. et al. (2015) Clinical utilization of genomics data produced by the international Pseudomonas aeruginosa consortium. Frontiers Microbiol."

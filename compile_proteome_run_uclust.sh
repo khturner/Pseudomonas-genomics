@@ -11,4 +11,4 @@ done
 usearch -sortbylength faa/proteome.faa -fastaout faa/proteome.sorted.faa
 
 # Run uclust
-usearch -cluster_smallmem faa/proteome.sorted.faa -id 0.75 -uc uc/results.id75.uc
+usearch -cluster_smallmem faa/proteome.sorted.faa -id 0.50 -uc uc/results.id50.uc
